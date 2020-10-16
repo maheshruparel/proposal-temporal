@@ -4,7 +4,18 @@ import { GetISO8601Calendar } from './calendar.mjs';
 import { ES } from './ecmascript.mjs';
 import { DateTimeFormat } from './intl.mjs';
 import { GetIntrinsic, MakeIntrinsicClass } from './intrinsicclass.mjs';
-import { ISO_YEAR, ISO_MONTH, ISO_DAY, YEAR_MONTH_BRAND, CALENDAR, CreateSlots, GetSlot, SetSlot } from './slots.mjs';
+import {
+  ISO_YEAR,
+  ISO_MONTH,
+  ISO_DAY,
+  YEAR_MONTH_BRAND,
+  CALENDAR,
+  YEARS,
+  MONTHS,
+  CreateSlots,
+  GetSlot,
+  SetSlot
+} from './slots.mjs';
 
 const ObjectAssign = Object.assign;
 
@@ -73,6 +84,7 @@ export class YearMonth {
     return GetSlot(this, CALENDAR).inLeapYear(this);
   }
   with(temporalYearMonthLike, options = undefined) {
+    // TODO
     if (!ES.IsTemporalYearMonth(this)) throw new TypeError('invalid receiver');
     if ('calendar' in temporalYearMonthLike) {
       throw new RangeError('invalid calendar property in year-month-like');
@@ -85,56 +97,89 @@ export class YearMonth {
     }
     const fields = ES.ToTemporalYearMonthFields(this, fieldNames);
     ObjectAssign(fields, props);
+    options = ES.NormalizeOptionsObject(options);
+    const overflow = ES.ToTemporalOverflow(options);
     const Construct = ES.SpeciesConstructor(this, YearMonth);
-    const result = calendar.yearMonthFromFields(fields, options, Construct);
-    if (!ES.IsTemporalYearMonth(result)) throw new TypeError('invalid result');
-    return result;
+    // FIXME fields
+    return ES.YearMonthFromFields(calendar, fields, overflow, Construct);
   }
   add(temporalDurationLike, options = undefined) {
+    // TODO
     if (!ES.IsTemporalYearMonth(this)) throw new TypeError('invalid receiver');
-    const duration = ES.ToLimitedTemporalDuration(temporalDurationLike);
-    let { years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds } = duration;
-    ES.RejectDurationSign(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds);
-    ({ days } = ES.BalanceDuration(days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds, 'days'));
 
-    const TemporalDate = GetIntrinsic('%Temporal.Date%');
     const calendar = GetSlot(this, CALENDAR);
     const fieldNames = ES.CalendarFields(calendar, ['month', 'year']);
     const fields = ES.ToTemporalYearMonthFields(this, fieldNames);
+
+    let {
+      years,
+      months,
+      weeks,
+      days,
+      hours,
+      minutes,
+      seconds,
+      milliseconds,
+      microseconds,
+      nanoseconds
+    } = ES.ToLimitedTemporalDuration(temporalDurationLike);
+    ES.RejectDurationSign(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds);
+    ({ days } = ES.BalanceDuration(days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds, 'days'));
+
+    options = ES.NormalizeOptionsObject(options);
+    const overflow = ES.ToTemporalOverflow(options);
+
+    const TemporalDate = GetIntrinsic('%Temporal.Date%');
     const sign = ES.DurationSign(years, months, weeks, days, 0, 0, 0, 0, 0, 0);
-    const day = sign < 0 ? calendar.daysInMonth(this) : 1;
-    const startDate = calendar.dateFromFields({ ...fields, day }, {}, TemporalDate);
-    const addedDate = calendar.dateAdd(startDate, { ...duration, days }, options, TemporalDate);
+    // TODO abstract op for daysInMonth.
+    fields.day = sign < 0 ? calendar.daysInMonth(this) : 1;
+    const startDate = ES.DateFromFields(calendar, fields, 'constrain', TemporalDate);
+    // TODO abstract op for dateAdd
+    const addedDate = calendar.dateAdd(startDate, { years, months, weeks, days }, { overflow }, TemporalDate);
 
     const Construct = ES.SpeciesConstructor(this, YearMonth);
-    const result = calendar.yearMonthFromFields(addedDate, options, Construct);
-    if (!ES.IsTemporalYearMonth(result)) throw new TypeError('invalid result');
-    return result;
+    return ES.YearMonthFromFields(calendar, addedDate, overflow, Construct);
   }
   subtract(temporalDurationLike, options = undefined) {
+    // TODO
     if (!ES.IsTemporalYearMonth(this)) throw new TypeError('invalid receiver');
-    const duration = ES.ToLimitedTemporalDuration(temporalDurationLike);
-    let { years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds } = duration;
-    ES.RejectDurationSign(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds);
-    ({ days } = ES.BalanceDuration(days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds, 'days'));
 
-    const TemporalDate = GetIntrinsic('%Temporal.Date%');
     const calendar = GetSlot(this, CALENDAR);
     const fieldNames = ES.CalendarFields(calendar, ['month', 'year']);
     const fields = ES.ToTemporalYearMonthFields(this, fieldNames);
+
+    let {
+      years,
+      months,
+      weeks,
+      days,
+      hours,
+      minutes,
+      seconds,
+      milliseconds,
+      microseconds,
+      nanoseconds
+    } = ES.ToLimitedTemporalDuration(temporalDurationLike);
+    ES.RejectDurationSign(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds);
+    ({ days } = ES.BalanceDuration(days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds, 'days'));
+
+    options = ES.NormalizeOptionsObject(options);
+    const overflow = ES.ToTemporalOverflow(options);
+
+    const TemporalDate = GetIntrinsic('%Temporal.Date%');
     const sign = ES.DurationSign(years, months, weeks, days, 0, 0, 0, 0, 0, 0);
-    const day = sign < 0 ? 1 : calendar.daysInMonth(this);
-    const startDate = calendar.dateFromFields({ ...fields, day }, {}, TemporalDate);
-    const subtractedDate = calendar.dateSubtract(startDate, { ...duration, days }, options, TemporalDate);
+    fields.day = sign < 0 ? 1 : calendar.daysInMonth(this);
+    const startDate = ES.DateFromFields(calendar, fields, 'constrain', TemporalDate);
+    // TODO abstract op for dateSubtract
+    const subtractedDate = calendar.dateSubtract(startDate, { years, months, weeks, days }, { overflow }, TemporalDate);
 
     const Construct = ES.SpeciesConstructor(this, YearMonth);
-    const result = calendar.yearMonthFromFields(subtractedDate, options, Construct);
-    if (!ES.IsTemporalYearMonth(result)) throw new TypeError('invalid result');
-    return result;
+    return ES.YearMonthFromFields(calendar, subtractedDate, overflow, Construct);
   }
   until(other, options = undefined) {
     if (!ES.IsTemporalYearMonth(this)) throw new TypeError('invalid receiver');
     other = ES.ToTemporalYearMonth(other, YearMonth);
+
     const calendar = GetSlot(this, CALENDAR);
     const otherCalendar = GetSlot(other, CALENDAR);
     const calendarID = ES.CalendarToString(calendar);
@@ -144,6 +189,7 @@ export class YearMonth {
         `cannot compute difference between months of ${calendarID} and ${otherCalendarID} calendars`
       );
     }
+
     options = ES.NormalizeOptionsObject(options);
     const disallowedUnits = [
       'weeks',
@@ -165,13 +211,15 @@ export class YearMonth {
     const otherFields = ES.ToTemporalYearMonthFields(other, fieldNames);
     const thisFields = ES.ToTemporalYearMonthFields(this, fieldNames);
     const TemporalDate = GetIntrinsic('%Temporal.Date%');
-    const otherDate = calendar.dateFromFields({ ...otherFields, day: 1 }, {}, TemporalDate);
-    const thisDate = calendar.dateFromFields({ ...thisFields, day: 1 }, {}, TemporalDate);
+    const thisDate = ES.DateFromFields(calendar, { ...thisFields, day: 1 }, 'constrain', TemporalDate);
+    const otherDate = ES.DateFromFields(calendar, { ...otherFields, day: 1 }, 'constrain', TemporalDate);
 
-    const result = calendar.dateUntil(thisDate, otherDate, { largestUnit });
-    if (smallestUnit === 'months' && roundingIncrement === 1) return result;
+    const result = ES.DateUntil(calendar, thisDate, otherDate, largestUnit);
+    const Duration = GetIntrinsic('%Temporal.Duration%');
+    if (smallestUnit === 'months' && roundingIncrement === 1) {
+      return new Duration(GetSlot(result, YEARS), GetSlot(result, MONTHS), 0, 0, 0, 0, 0, 0, 0, 0);
+    }
 
-    let { years, months } = result;
     const TemporalDateTime = GetIntrinsic('%Temporal.DateTime%');
     const relativeTo = new TemporalDateTime(
       GetSlot(thisDate, ISO_YEAR),
@@ -185,9 +233,9 @@ export class YearMonth {
       0,
       calendar
     );
-    ({ years, months } = ES.RoundDuration(
-      years,
-      months,
+    const { years, months } = ES.RoundDuration(
+      GetSlot(result, YEARS),
+      GetSlot(result, MONTHS),
       0,
       0,
       0,
@@ -200,9 +248,8 @@ export class YearMonth {
       smallestUnit,
       roundingMode,
       relativeTo
-    ));
+    );
 
-    const Duration = GetIntrinsic('%Temporal.Duration%');
     return new Duration(years, months, 0, 0, 0, 0, 0, 0, 0, 0);
   }
   since(other, options = undefined) {
@@ -305,11 +352,13 @@ export class YearMonth {
   }
   toDateOnDay(day) {
     if (!ES.IsTemporalYearMonth(this)) throw new TypeError('invalid receiver');
+
     const calendar = GetSlot(this, CALENDAR);
     const fieldNames = ES.CalendarFields(calendar, ['month', 'year']);
     const fields = ES.ToTemporalYearMonthFields(this, fieldNames);
+    day = ES.ToInteger(day);
     const Date = GetIntrinsic('%Temporal.Date%');
-    return calendar.dateFromFields({ ...fields, day }, { overflow: 'reject' }, Date);
+    return ES.DateFromFields(calendar, { ...fields, day }, 'reject', Date);
   }
   getFields() {
     if (!ES.IsTemporalYearMonth(this)) throw new TypeError('invalid receiver');

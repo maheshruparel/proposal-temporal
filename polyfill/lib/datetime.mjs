@@ -86,6 +86,7 @@ export class DateTime {
     microsecond = ES.ToInteger(microsecond);
     nanosecond = ES.ToInteger(nanosecond);
     calendar = ES.ToTemporalCalendar(calendar);
+    //console.log(`new DateTime(..., ${calendar} (${typeof calendar}))`);
 
     ES.RejectDateTime(isoYear, isoMonth, isoDay, hour, minute, second, millisecond, microsecond, nanosecond);
     ES.RejectDateTimeRange(isoYear, isoMonth, isoDay, hour, minute, second, millisecond, microsecond, nanosecond);
@@ -113,6 +114,7 @@ export class DateTime {
   }
   get calendar() {
     if (!ES.IsTemporalDateTime(this)) throw new TypeError('invalid receiver');
+    //console.log(`DateTime.calendar → ${GetSlot(this, CALENDAR)}`);
     return GetSlot(this, CALENDAR);
   }
   get year() {
@@ -192,10 +194,8 @@ export class DateTime {
     options = ES.NormalizeOptionsObject(options);
     const overflow = ES.ToTemporalOverflow(options);
     let source;
-    let calendar = temporalDateTimeLike.calendar;
-    if (calendar) {
-      const TemporalCalendar = GetIntrinsic('%Temporal.Calendar%');
-      calendar = TemporalCalendar.from(calendar);
+    let calendar = temporalDateTimeLike.calendar; // XXX
+    if (calendar !== undefined) {
       source = new DateTime(
         GetSlot(this, ISO_YEAR),
         GetSlot(this, ISO_MONTH),
@@ -209,9 +209,10 @@ export class DateTime {
         calendar
       );
     } else {
-      calendar = GetSlot(this, CALENDAR);
       source = this;
     }
+    calendar = GetSlot(source, CALENDAR);
+
     const fieldNames = ES.CalendarFields(calendar, [
       'day',
       'hour',
@@ -229,7 +230,7 @@ export class DateTime {
     }
     const fields = ES.ToTemporalDateTimeFields(source, fieldNames);
     ObjectAssign(fields, props);
-    const date = calendar.dateFromFields(fields, { overflow }, GetIntrinsic('%Temporal.Date%'));
+    const date = ES.DateFromFields(calendar, fields, overflow, GetIntrinsic('%Temporal.Date%'));
     let year = GetSlot(date, ISO_YEAR);
     let month = GetSlot(date, ISO_MONTH);
     let day = GetSlot(date, ISO_DAY);
@@ -414,6 +415,7 @@ export class DateTime {
   until(other, options = undefined) {
     if (!ES.IsTemporalDateTime(this)) throw new TypeError('invalid receiver');
     other = ES.ToTemporalDateTime(other, DateTime);
+
     const calendar = GetSlot(this, CALENDAR);
     const otherCalendar = GetSlot(other, CALENDAR);
     const calendarId = ES.CalendarToString(calendar);
@@ -421,6 +423,7 @@ export class DateTime {
     if (calendarId !== otherCalendarId) {
       throw new RangeError(`cannot compute difference between dates of ${calendarId} and ${otherCalendarId} calendars`);
     }
+
     options = ES.NormalizeOptionsObject(options);
     const smallestUnit = ES.ToSmallestTemporalDurationUnit(options, 'nanoseconds');
     const defaultLargestUnit = ES.LargerOfTwoTemporalDurationUnits('days', smallestUnit);
@@ -694,17 +697,17 @@ export class DateTime {
     if (!ES.IsTemporalDateTime(this)) throw new TypeError('invalid receiver');
     const YearMonth = GetIntrinsic('%Temporal.YearMonth%');
     const calendar = GetSlot(this, CALENDAR);
-    const fieldNames = ES.CalendarFields(calendar, ['day', 'month', 'year']);
-    const fields = ES.ToTemporalDateFields(this, fieldNames);
-    return calendar.yearMonthFromFields(fields, {}, YearMonth);
+    const fieldNames = ES.CalendarFields(calendar, ['month', 'year']);
+    const fields = ES.ToTemporalYearMonthFields(this, fieldNames);
+    return ES.YearMonthFromFields(calendar, fields, 'constrain', YearMonth);
   }
   toMonthDay() {
     if (!ES.IsTemporalDateTime(this)) throw new TypeError('invalid receiver');
     const MonthDay = GetIntrinsic('%Temporal.MonthDay%');
     const calendar = GetSlot(this, CALENDAR);
-    const fieldNames = ES.CalendarFields(calendar, ['day', 'month', 'year']);
-    const fields = ES.ToTemporalDateFields(this, fieldNames);
-    return calendar.monthDayFromFields(fields, {}, MonthDay);
+    const fieldNames = ES.CalendarFields(calendar, ['day', 'month']);
+    const fields = ES.ToTemporalMonthDayFields(this, fieldNames);
+    return ES.MonthDayFromFields(calendar, fields, 'constrain', MonthDay);
   }
   toTime() {
     if (!ES.IsTemporalDateTime(this)) throw new TypeError('invalid receiver');

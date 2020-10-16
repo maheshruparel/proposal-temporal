@@ -104,9 +104,11 @@ export class MonthDay {
   }
   toDateInYear(item, options = undefined) {
     if (!ES.IsTemporalMonthDay(this)) throw new TypeError('invalid receiver');
+
     const calendar = GetSlot(this, CALENDAR);
     const receiverFieldNames = ES.CalendarFields(calendar, ['day', 'month']);
     const fields = ES.ToTemporalMonthDayFields(this, [receiverFieldNames]);
+
     if (ES.Type(item) === 'Object') {
       const inputFieldNames = ES.CalendarFields(calendar, ['year']);
       const entries = [['year']];
@@ -120,8 +122,12 @@ export class MonthDay {
     } else {
       fields.year = ES.ToInteger(item);
     }
+
+    options = ES.NormalizeOptionsObject(options);
+    const overflow = ES.ToTemporalOverflow(options);
+
     const Date = GetIntrinsic('%Temporal.Date%');
-    return calendar.dateFromFields(fields, options, Date);
+    return ES.DateFromFields(calendar, fields, overflow, Date);
   }
   getFields() {
     if (!ES.IsTemporalMonthDay(this)) throw new TypeError('invalid receiver');

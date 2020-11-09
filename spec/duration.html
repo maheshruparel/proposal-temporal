@@ -94,6 +94,33 @@
         1. Return ? ToTemporalDuration(_item_, _constructor_).
       </emu-alg>
     </emu-clause>
+
+    <emu-clause id="sec-temporal.duration.compare">
+      <h1>Temporal.Duration.compare ( _one_, _two_ [ , _options_ ] )</h1>
+      <p>
+        The `compare` method takes three arguments, _one_, _two_, and _options_.
+        The following steps are taken:
+      </p>
+      <emu-alg>
+        1. Set _one_ to ? ToTemporalDuration(_one_).
+        1. Set _two_ to ? ToTemporalDuration(_two_).
+        1. Set _options_ to ? NormalizeOptionsObject(_options_).
+        1. Let _relativeTo_ be ? ToRelativeTemporalObject(_options_).
+        1. If any of _one_.[[Years]], _two_.[[Years]], _one_.[[Months]], _two_.[[Months]], _one_.[[Weeks]], _two_.[[Weeks]], _one_.[[Days]], or _two_.[[Days]] are not 0, then
+          1. Let _balanceResult1_ be ? UnbalanceDurationRelative(_one_.[[Years]], _one_.[[Months]], _one_.[[Weeks]], _one_.[[Days]], *"days"*, _relativeTo_).
+          1. Let _balanceResult2_ be ? UnbalanceDurationRelative(_two_.[[Years]], _two_.[[Months]], _two_.[[Weeks]], _two_.[[Days]], *"days"*, _relativeTo_).
+          1. Let _days1_ be _balanceResult1_.[[Days]].
+          1. Let _days2_ be _balanceResult2_.[[Days]].
+        1. Else,
+          1. Let _days1_ be _one_.[[Days]].
+          1. Let _days2_ be _two_.[[Days]].
+        1. Let _ns1_ be ! TotalDurationNanoseconds(_days1_, _one_.[[Hours]], _one_.[[Minutes]], _one_.[[Seconds]], _one_.[[Milliseconds]], _one_.[[Microseconds]], _one_.[[Nanoseconds]]).
+        1. Let _ns2_ be ! TotalDurationNanoseconds(_days2_, _two_.[[Hours]], _two_.[[Minutes]], _two_.[[Seconds]], _two_.[[Milliseconds]], _two_.[[Microseconds]], _two_.[[Nanoseconds]]).
+        1. If _ns1_ &gt; _ns2_, return 1.
+        1. If _ns1_ &lt; _ns2_, return −1.
+        1. Return 0.
+      </emu-alg>
+    </emu-clause>
   </emu-clause>
 
   <emu-clause id="sec-properties-of-the-temporal-duration-prototype-object">
